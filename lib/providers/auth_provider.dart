@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
+import '../services/preferences_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -30,6 +31,18 @@ class AuthProvider extends ChangeNotifier {
       }
       notifyListeners();
     });
+    
+    // Initialize authentication state
+    _initializeAuthState();
+  }
+
+  // Initialize authentication state on app start
+  Future<void> _initializeAuthState() async {
+    final shouldStayLoggedIn = await PreferencesService.shouldStayLoggedIn();
+    if (!shouldStayLoggedIn && _auth.currentUser != null) {
+      // If remember me is false but user is still signed in Firebase, sign them out
+      await _auth.signOut();
+    }
   }
 
   // Load user model from Firestore
@@ -107,6 +120,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> signInWithEmailAndPassword({
     required String email,
     required String password,
+    bool rememberMe = false,
   }) async {
     try {
       _setLoading(true);
@@ -120,6 +134,13 @@ class AuthProvider extends ChangeNotifier {
       // Load the user model
       if (_auth.currentUser != null) {
         await _loadUserModel(_auth.currentUser!.uid);
+        
+        // Save login state if remember me is checked
+        await PreferencesService.saveLoginState(
+          isLoggedIn: true,
+          rememberMe: rememberMe,
+          userEmail: email,
+        );
       }
       
       _setLoading(false);
@@ -188,6 +209,10 @@ class AuthProvider extends ChangeNotifier {
       await _auth.signOut();
       // await _googleSignIn.signOut(); // Temporarily disabled for web
       _userModel = null;
+      
+      // Clear login preferences
+      await PreferencesService.clearLoginState();
+      
       notifyListeners();
     } catch (e) {
       _setError('Failed to sign out. Please try again.');

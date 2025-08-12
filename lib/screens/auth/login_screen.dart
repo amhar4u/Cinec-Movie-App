@@ -3,11 +3,11 @@ import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
-import '../../widgets/oauth_button.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../utils/responsive_utils.dart';
+import '../../utils/role_navigation.dart';
 import '../../providers/auth_provider.dart';
-import '../home/home_screen.dart';
+import '../../services/preferences_service.dart';
 import 'signup_screen.dart';
 
 
@@ -23,6 +23,25 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final savedEmail = await PreferencesService.getSavedEmail();
+    final rememberMe = await PreferencesService.getRememberMePreference();
+    
+    if (savedEmail != null) {
+      _emailController.text = savedEmail;
+    }
+    
+    setState(() {
+      _rememberMe = rememberMe;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -262,62 +281,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
 
-        SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 20, tablet: 24, desktop: 30)),
-
-        // Divider
-        FadeIn(
-          duration: const Duration(milliseconds: 600),
-          delay: const Duration(milliseconds: 600),
-          child: Row(
-            children: [
-              Expanded(
-                child: Divider(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.getSpacing(context, mobile: 12, tablet: 16, desktop: 20),
-                ),
-                child: Text(
-                  'or continue with',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    fontSize: ResponsiveUtils.getFontSize(context,
-                      mobile: 14, tablet: 15, desktop: 16),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Divider(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 20, tablet: 24, desktop: 30)),
-
-        // OAuth Buttons
-        SlideInUp(
-          duration: const Duration(milliseconds: 600),
-          delay: const Duration(milliseconds: 700),
-          child: Column(
-            children: [
-              OAuthButton(
-                provider: OAuthProvider.google,
-                onPressed: _signInWithGoogle,
-              ),
-              SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 12, tablet: 16, desktop: 20)),
-              OAuthButton(
-                provider: OAuthProvider.apple,
-                onPressed: _signInWithApple,
-              ),
-            ],
-          ),
-        ),
-
         SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 30, tablet: 40, desktop: 50)),
 
         // Sign Up Link
@@ -370,37 +333,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await authProvider.signInWithEmailAndPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      rememberMe: _rememberMe,
     );
 
     if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.signInWithGoogle();
-
-    if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    }
-  }
-
-  Future<void> _signInWithApple() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.signInWithApple();
-
-    if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      // Navigate based on user role
+      final userRole = authProvider.userModel?.role;
+      RoleBasedNavigation.navigateToRoleBasedHomeAndClearStack(context, userRole);
     }
   }
 
