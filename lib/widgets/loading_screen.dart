@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/app_constants.dart';
 import '../utils/responsive_utils.dart';
+import 'app_logo.dart';
 
 class LoadingScreen extends StatelessWidget {
   const LoadingScreen({super.key});
@@ -151,18 +151,10 @@ class LoadingScreen extends StatelessWidget {
       desktop: isCompact ? 80 : 120,
     );
 
-    return Container(
-      width: logoSize,
-      height: logoSize,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(logoSize / 2),
-      ),
-      child: Icon(
-        FontAwesomeIcons.film,
-        color: Colors.white,
-        size: logoSize * 0.4,
-      ),
+    return AppLogo(
+      size: logoSize,
+      primaryColor: Colors.white,
+      secondaryColor: Colors.white.withValues(alpha: 0.8),
     );
   }
 
