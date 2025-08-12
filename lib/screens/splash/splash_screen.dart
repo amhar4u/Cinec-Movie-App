@@ -26,13 +26,20 @@ class _SplashScreenState extends State<SplashScreen> {
     if (mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      // Check if user is already authenticated
-      if (authProvider.isLoggedIn) {
+      // Check if user should stay logged in (remember me + firebase auth)
+      final shouldStayLoggedIn = await PreferencesService.shouldStayLoggedIn();
+      
+      if (authProvider.isLoggedIn && shouldStayLoggedIn) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } else {
+        // If remember me is false but user is still in Firebase, sign them out
+        if (authProvider.isLoggedIn && !shouldStayLoggedIn) {
+          await authProvider.signOut();
+        }
+        
         // Check if user has seen onboarding
         final hasSeenOnboarding = await PreferencesService.hasSeenOnboarding();
         if (hasSeenOnboarding) {

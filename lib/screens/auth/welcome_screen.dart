@@ -1,8 +1,10 @@
+// ignore_for_file: unused_import
+
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../constants/app_constants.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/app_logo.dart';
 import '../../utils/responsive_utils.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
@@ -107,27 +109,8 @@ class WelcomeScreen extends StatelessWidget {
           mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
           children: [
             // App Logo
-            Container(
-              width: logoSize,
-              height: logoSize,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.secondary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(
-                  AppConstants.radiusXLarge,
-                ),
-              ),
-              child: Icon(
-                FontAwesomeIcons.film,
-                color: Colors.white,
-                size: logoSize * 0.4,
-              ),
+            AppLogo(
+              size: logoSize,
             ),
             
             SizedBox(height: ResponsiveUtils.getSpacing(context,
