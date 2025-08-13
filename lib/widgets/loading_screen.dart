@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import '../constants/app_constants.dart';
 import '../utils/responsive_utils.dart';
+import 'app_logo.dart';
 
 class LoadingScreen extends StatelessWidget {
   const LoadingScreen({super.key});

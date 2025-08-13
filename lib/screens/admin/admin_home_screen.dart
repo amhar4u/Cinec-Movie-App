@@ -185,11 +185,6 @@ class AdminHomeScreen extends StatelessWidget {
               builder: (context) => const AdminMovieListScreen(),
             ),
           );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-            ),
-          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${action['title']} coming soon!')),
