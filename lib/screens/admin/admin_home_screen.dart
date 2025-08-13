@@ -9,6 +9,7 @@ import '../../utils/responsive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../auth/welcome_screen.dart';
 import 'admin_movie_list_screen.dart';
+import 'user_management_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -176,7 +177,7 @@ class AdminHomeScreen extends StatelessWidget {
 
   Widget _buildActionCard(BuildContext context, ThemeData theme, Map<String, dynamic> action) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         // Handle action tap
         if (action['title'] == 'Manage Movies') {
           Navigator.push(
@@ -185,6 +186,23 @@ class AdminHomeScreen extends StatelessWidget {
               builder: (context) => const AdminMovieListScreen(),
             ),
           );
+        } else if (action['title'] == 'User Management') {
+          // Verify admin access before navigating
+          try {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const UserManagementScreen(),
+              ),
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Access denied: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${action['title']} coming soon!')),

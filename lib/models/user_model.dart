@@ -13,6 +13,7 @@ class UserModel {
   final UserRole role;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  final bool isActive;
 
   UserModel({
     required this.uid,
@@ -22,6 +23,7 @@ class UserModel {
     this.role = UserRole.user,
     required this.createdAt,
     this.lastLoginAt,
+    this.isActive = true,
   });
 
   // Generate default profile picture (first letter of name with solid background)
@@ -48,6 +50,7 @@ class UserModel {
       ),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
+      isActive: data['isActive'] ?? true,
     );
   }
 
@@ -60,6 +63,7 @@ class UserModel {
       'role': role.toString().split('.').last,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastLoginAt': lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
+      'isActive': isActive,
     };
   }
 
@@ -70,6 +74,7 @@ class UserModel {
     String? profilePictureUrl,
     UserRole? role,
     DateTime? lastLoginAt,
+    bool? isActive,
   }) {
     return UserModel(
       uid: uid,
@@ -79,6 +84,7 @@ class UserModel {
       role: role ?? this.role,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      isActive: isActive ?? this.isActive,
     );
   }
 

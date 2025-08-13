@@ -1,33 +1,97 @@
 import 'package:flutter/material.dart';
-import 'package:animate_do/animate_do.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import '../../constants/app_constants.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/profile_avatar.dart';
-import '../../utils/responsive_utils.dart';
 import '../../providers/auth_provider.dart';
-import '../auth/welcome_screen.dart';
-import 'user_movie_list_screen.dart';
+import '../../models/movie_model.dart';
+import '../../services/movie_service.dart';
+import '../movie_detail_screen.dart';
+import '../../widgets/profile_avatar.dart';
+import 'dart:async';
 
-class UserHomeScreen extends StatelessWidget {
+class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final contentWidth = ResponsiveUtils.getContentWidth(context);
-    final padding = ResponsiveUtils.getPadding(context);
+  State<UserHomeScreen> createState() => _UserHomeScreenState();
+}
 
+class _UserHomeScreenState extends State<UserHomeScreen> {
+  final MovieService _movieService = MovieService();
+  final PageController _featuredPageController = PageController();
+  Timer? _autoSlideTimer;
+  int _currentFeaturedIndex = 0;
+  
+  List<Movie> _featuredMovies = [];
+  Map<String, List<Movie>> _moviesByGenre = {};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMovies();
+    _startAutoSlide();
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    _featuredPageController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoSlide() {
+    _autoSlideTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_featuredMovies.isNotEmpty && _featuredPageController.hasClients) {
+        setState(() {
+          _currentFeaturedIndex = (_currentFeaturedIndex + 1) % _featuredMovies.length;
+        });
+        _featuredPageController.animateToPage(
+          _currentFeaturedIndex,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _loadMovies() async {
+    try {
+      // Get all active movies
+      final allMovies = await _movieService.getMovies().first;
+      final activeMovies = allMovies.where((movie) => movie.isActive).toList();
+      
+      // Get featured movies (latest or top-rated)
+      _featuredMovies = activeMovies.take(5).toList();
+      
+      // Group movies by genre
+      _moviesByGenre.clear();
+      for (var movie in activeMovies) {
+        if (!_moviesByGenre.containsKey(movie.genre)) {
+          _moviesByGenre[movie.genre] = [];
+        }
+        _moviesByGenre[movie.genre]!.add(movie);
+      }
+      
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(
-        title: AppConstants.appName,
-        showThemeToggle: true,
+      appBar: AppBar(
+        title: const Text('Movies'),
+        automaticallyImplyLeading: false,
         actions: [
           Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
               return IconButton(
-                onPressed: () => _showProfileBottomSheet(context),
+                onPressed: () {},
                 icon: ProfileAvatar(
                   userModel: authProvider.userModel,
                   radius: 16,
@@ -37,90 +101,49 @@ class UserHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: contentWidth,
-            child: SingleChildScrollView(
-              padding: padding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildWelcomeSection(context, theme),
-                  SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 24, tablet: 32, desktop: 40)),
-                  _buildQuickActions(context, theme),
-                  SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 24, tablet: 32, desktop: 40)),
-                  _buildFeaturedMovies(context, theme),
-                  SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 24, tablet: 32, desktop: 40)),
-                  _buildRecentBookings(context, theme),
-                ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadMovies,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildWelcomeSection(),
+                    _buildFeaturedMoviesSlider(),
+                    _buildMovieCategories(),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context, ThemeData theme) {
+  Widget _buildWelcomeSection() {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         final user = authProvider.userModel;
         final firstName = user?.name.split(' ').first ?? 'User';
         
-        return FadeInDown(
-          duration: const Duration(milliseconds: 600),
+        return Container(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back,',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  fontSize: ResponsiveUtils.getFontSize(context, mobile: 16, tablet: 18, desktop: 20),
-                ),
-              ),
-              SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 4, tablet: 6, desktop: 8)),
-              Text(
-                firstName,
-                style: theme.textTheme.headlineMedium?.copyWith(
+                'Hello, $firstName! 👋',
+                style: const TextStyle(
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  fontSize: ResponsiveUtils.getFontSize(context, mobile: 24, tablet: 28, desktop: 32),
                 ),
               ),
-              SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 8, tablet: 12, desktop: 16)),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveUtils.getSpacing(context, mobile: 12, tablet: 16, desktop: 20),
-                  vertical: ResponsiveUtils.getSpacing(context, mobile: 8, tablet: 10, desktop: 12),
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.2),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.person,
-                      size: 16,
-                      color: theme.colorScheme.primary,
-                    ),
-                    SizedBox(width: ResponsiveUtils.getSpacing(context, mobile: 8, tablet: 10, desktop: 12)),
-                    Text(
-                      'USER',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: ResponsiveUtils.getFontSize(context, mobile: 12, tablet: 13, desktop: 14),
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 8),
+              const Text(
+                'What would you like to watch today?',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
                 ),
               ),
             ],
@@ -130,265 +153,362 @@ class UserHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context, ThemeData theme) {
-    final actions = [
-      {'icon': FontAwesomeIcons.film, 'title': 'Browse Movies', 'color': Colors.blue},
-      {'icon': FontAwesomeIcons.ticket, 'title': 'My Bookings', 'color': Colors.green},
-      {'icon': FontAwesomeIcons.clock, 'title': 'Showtimes', 'color': Colors.orange},
-      {'icon': FontAwesomeIcons.star, 'title': 'Favorites', 'color': Colors.red},
-    ];
+  Widget _buildFeaturedMoviesSlider() {
+    if (_featuredMovies.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-    return FadeInUp(
-      duration: const Duration(milliseconds: 600),
-      delay: const Duration(milliseconds: 200),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Quick Actions',
-            style: theme.textTheme.headlineSmall?.copyWith(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Featured Movies',
+            style: TextStyle(
+              fontSize: 20,
               fontWeight: FontWeight.bold,
-              fontSize: ResponsiveUtils.getFontSize(context, mobile: 20, tablet: 22, desktop: 24),
             ),
           ),
-          SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 16, tablet: 20, desktop: 24)),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: ResponsiveUtils.isDesktop(context) ? 4 : 2,
-              crossAxisSpacing: ResponsiveUtils.getSpacing(context, mobile: 12, tablet: 16, desktop: 20),
-              mainAxisSpacing: ResponsiveUtils.getSpacing(context, mobile: 12, tablet: 16, desktop: 20),
-              childAspectRatio: 1.2,
-            ),
-            itemCount: actions.length,
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 280,
+          child: PageView.builder(
+            controller: _featuredPageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentFeaturedIndex = index;
+              });
+            },
+            itemCount: _featuredMovies.length,
             itemBuilder: (context, index) {
-              final action = actions[index];
-              return _buildActionCard(context, theme, action);
+              final movie = _featuredMovies[index];
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildFeaturedMovieCard(movie),
+              );
             },
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionCard(BuildContext context, ThemeData theme, Map<String, dynamic> action) {
-    return GestureDetector(
-      onTap: () {
-        // Handle action tap
-        if (action['title'] == 'Browse Movies') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const UserMovieListScreen(),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${action['title']} coming soon!')),
-          );
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-          border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.2),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.shadowColor.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
-        child: Column(
+        const SizedBox(height: 12),
+        // Page indicators
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(ResponsiveUtils.getSpacing(context, mobile: 12, tablet: 16, desktop: 20)),
+          children: List.generate(
+            _featuredMovies.length,
+            (index) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: 8,
+              height: 8,
               decoration: BoxDecoration(
-                color: (action['color'] as Color).withOpacity(0.1),
                 shape: BoxShape.circle,
-              ),
-              child: Icon(
-                action['icon'] as IconData,
-                color: action['color'] as Color,
-                size: ResponsiveUtils.getFontSize(context, mobile: 24, tablet: 28, desktop: 32),
+                color: _currentFeaturedIndex == index
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey.withOpacity(0.3),
               ),
             ),
-            SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 8, tablet: 12, desktop: 16)),
-            Text(
-              action['title'] as String,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: ResponsiveUtils.getFontSize(context, mobile: 12, tablet: 14, desktop: 16),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildFeaturedMovies(BuildContext context, ThemeData theme) {
-    return FadeInUp(
-      duration: const Duration(milliseconds: 600),
-      delay: const Duration(milliseconds: 400),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Featured Movies',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: ResponsiveUtils.getFontSize(context, mobile: 20, tablet: 22, desktop: 24),
-            ),
-          ),
-          SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 16, tablet: 20, desktop: 24)),
-          Container(
-            height: 150,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 100,
-                  margin: EdgeInsets.only(right: ResponsiveUtils.getSpacing(context, mobile: 12, tablet: 16, desktop: 20)),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+  Widget _buildFeaturedMovieCard(Movie movie) {
+    return GestureDetector(
+      onTap: () => _navigateToMovieDetail(movie),
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              // Background Image
+              Container(
+                height: 280,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).primaryColor.withOpacity(0.7),
+                      Theme.of(context).primaryColor,
+                    ],
                   ),
-                  child: Center(
-                    child: Icon(
-                      FontAwesomeIcons.film,
-                      color: theme.colorScheme.primary,
-                      size: 32,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentBookings(BuildContext context, ThemeData theme) {
-    return FadeInUp(
-      duration: const Duration(milliseconds: 600),
-      delay: const Duration(milliseconds: 600),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Recent Bookings',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: ResponsiveUtils.getFontSize(context, mobile: 20, tablet: 22, desktop: 24),
-            ),
-          ),
-          SizedBox(height: ResponsiveUtils.getSpacing(context, mobile: 16, tablet: 20, desktop: 24)),
-          Container(
-            padding: EdgeInsets.all(ResponsiveUtils.getSpacing(context, mobile: 16, tablet: 20, desktop: 24)),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
+                child: movie.posterImageUrl.isNotEmpty
+                    ? Image.network(
+                        movie.posterImageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.movie,
+                              size: 100,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Colors.grey[300],
+                        child: const Icon(
+                          Icons.movie,
+                          size: 100,
+                          color: Colors.grey,
+                        ),
+                      ),
               ),
-            ),
-            child: Center(
-              child: Text(
-                'No recent bookings',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+              // Gradient overlay
+              Container(
+                height: 280,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.7),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              // Movie info
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        movie.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${movie.genre} • ${movie.duration} min',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            movie.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).primaryColor,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'Book Now',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  void _showProfileBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+  Widget _buildMovieCategories() {
+    if (_moviesByGenre.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('No movies available'),
+        ),
+      );
+    }
+
+    return Column(
+      children: _moviesByGenre.entries.map((entry) {
+        final genre = entry.key;
+        final movies = entry.value;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ProfileAvatar(
-                    userModel: authProvider.userModel,
-                    radius: 40,
-                  ),
-                  const SizedBox(height: 16),
                   Text(
-                    authProvider.userModel?.name ?? 'User',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    genre,
+                    style: const TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    authProvider.userModel?.email ?? '',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ListTile(
-                    leading: const Icon(Icons.person),
-                    title: const Text('Edit Profile'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate to edit profile
+                  TextButton(
+                    onPressed: () {
+                      // Navigate to genre-specific movie list
                     },
+                    child: const Text('See All'),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.settings),
-                    title: const Text('Settings'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate to settings
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: const Text('Sign Out'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await authProvider.signOut();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-                          (route) => false,
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 20),
                 ],
               ),
             ),
-          );
-        },
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 200,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: movies.length > 10 ? 10 : movies.length,
+                itemBuilder: (context, index) {
+                  final movie = movies[index];
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: 120,
+                    child: _buildMovieCard(movie),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMovieCard(Movie movie) {
+    return GestureDetector(
+      onTap: () => _navigateToMovieDetail(movie),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Movie poster
+              Expanded(
+                flex: 3,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                  ),
+                  child: movie.posterImageUrl.isNotEmpty
+                      ? Image.network(
+                          movie.posterImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.movie,
+                              size: 40,
+                              color: Colors.grey,
+                            );
+                          },
+                        )
+                      : const Icon(
+                          Icons.movie,
+                          size: 40,
+                          color: Colors.grey,
+                        ),
+                ),
+              ),
+              // Movie info
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        movie.title,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            movie.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToMovieDetail(Movie movie) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MovieDetailScreen(movie: movie),
       ),
     );
   }
