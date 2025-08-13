@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/movie_model.dart';
 import '../theme/app_theme.dart';
+import 'booking/showtime_selection_screen.dart';
 
 class MovieDetailScreen extends StatelessWidget {
   final Movie movie;
@@ -204,9 +205,10 @@ class MovieDetailScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: movie.isActive
                           ? () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Booking feature coming soon!'),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ShowtimeSelectionScreen(movie: movie),
                                 ),
                               );
                             }

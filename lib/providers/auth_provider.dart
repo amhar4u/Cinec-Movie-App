@@ -52,6 +52,22 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading user model: $e');
+      
+      // Create a basic user model if Firestore read fails
+      // This prevents the app from breaking due to permission issues
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        _userModel = UserModel(
+          uid: uid,
+          email: currentUser.email ?? '',
+          name: currentUser.displayName ?? 'User',
+          role: UserRole.user, // Default to user role
+          createdAt: DateTime.now(),
+          isActive: true,
+        );
+        debugPrint('Created fallback user model for uid: $uid');
+        notifyListeners();
+      }
     }
   }
 

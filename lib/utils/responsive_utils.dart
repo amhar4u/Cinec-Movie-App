@@ -269,3 +269,231 @@ class ResponsiveUtils {
     return (screenHeight - safeAreaPadding) * 0.85;
   }
 }
+
+// Extension methods for easier access to responsive utilities
+extension ResponsiveExtension on BuildContext {
+  // Device type checks
+  bool get isMobile => ResponsiveUtils.isMobile(this);
+  bool get isTablet => ResponsiveUtils.isTablet(this);
+  bool get isDesktop => ResponsiveUtils.isDesktop(this);
+  bool get isLandscape => ResponsiveUtils.isLandscape(this);
+  bool get isPortrait => ResponsiveUtils.isPortrait(this);
+  bool get isSmallScreen => ResponsiveUtils.isSmallScreen(this);
+  bool get needsCompactLayout => ResponsiveUtils.needsCompactLayout(this);
+
+  // Screen dimensions
+  double get screenWidth => MediaQuery.of(this).size.width;
+  double get screenHeight => MediaQuery.of(this).size.height;
+  Size get screenSize => ResponsiveUtils.getScreenSize(this);
+
+  // Percentage-based dimensions (easier than calculating manually)
+  double widthPercent(double percentage) => screenWidth * (percentage / 100);
+  double heightPercent(double percentage) => screenHeight * (percentage / 100);
+
+  // Quick access to common spacing values
+  double get smallSpacing => ResponsiveUtils.getSpacing(this, mobile: 8, tablet: 12, desktop: 16);
+  double get mediumSpacing => ResponsiveUtils.getSpacing(this, mobile: 16, tablet: 20, desktop: 24);
+  double get largeSpacing => ResponsiveUtils.getSpacing(this, mobile: 24, tablet: 32, desktop: 40);
+
+  // Quick access to common font sizes
+  double get smallText => ResponsiveUtils.getFontSize(this, mobile: 12, tablet: 14, desktop: 16);
+  double get bodyText => ResponsiveUtils.getFontSize(this, mobile: 14, tablet: 16, desktop: 18);
+  double get titleText => ResponsiveUtils.getFontSize(this, mobile: 18, tablet: 20, desktop: 24);
+  double get headingText => ResponsiveUtils.getFontSize(this, mobile: 24, tablet: 28, desktop: 32);
+
+  // Quick access to common padding
+  EdgeInsets get smallPadding => ResponsiveUtils.getPadding(this, 
+    mobile: const EdgeInsets.all(8), 
+    tablet: const EdgeInsets.all(12), 
+    desktop: const EdgeInsets.all(16));
+  
+  EdgeInsets get mediumPadding => ResponsiveUtils.getPadding(this);
+  
+  EdgeInsets get largePadding => ResponsiveUtils.getPadding(this, 
+    mobile: const EdgeInsets.all(24), 
+    tablet: const EdgeInsets.all(32), 
+    desktop: const EdgeInsets.all(40));
+}
+
+// Responsive widget wrapper
+class ResponsiveWidget extends StatelessWidget {
+  final Widget mobile;
+  final Widget? tablet;
+  final Widget? desktop;
+
+  const ResponsiveWidget({
+    Key? key,
+    required this.mobile,
+    this.tablet,
+    this.desktop,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (context.isDesktop) {
+      return desktop ?? tablet ?? mobile;
+    } else if (context.isTablet) {
+      return tablet ?? mobile;
+    } else {
+      return mobile;
+    }
+  }
+}
+
+// Responsive Container widget that automatically handles sizing
+class ResponsiveContainer extends StatelessWidget {
+  final Widget child;
+  final double? width;
+  final double? height;
+  final double? mobileWidth;
+  final double? tabletWidth;
+  final double? desktopWidth;
+  final double? mobileHeight;
+  final double? tabletHeight;
+  final double? desktopHeight;
+  final Color? color;
+  final EdgeInsets? padding;
+  final EdgeInsets? margin;
+  final Decoration? decoration;
+  final AlignmentGeometry? alignment;
+
+  const ResponsiveContainer({
+    Key? key,
+    required this.child,
+    this.width,
+    this.height,
+    this.mobileWidth,
+    this.tabletWidth,
+    this.desktopWidth,
+    this.mobileHeight,
+    this.tabletHeight,
+    this.desktopHeight,
+    this.color,
+    this.padding,
+    this.margin,
+    this.decoration,
+    this.alignment,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width ?? ResponsiveUtils.getWidth(
+        context,
+        mobile: mobileWidth,
+        tablet: tabletWidth,
+        desktop: desktopWidth,
+      ),
+      height: height ?? ResponsiveUtils.getHeight(
+        context,
+        mobile: mobileHeight,
+        tablet: tabletHeight,
+        desktop: desktopHeight,
+      ),
+      color: color,
+      padding: padding ?? ResponsiveUtils.getPadding(context),
+      margin: margin,
+      decoration: decoration,
+      alignment: alignment,
+      child: child,
+    );
+  }
+}
+
+// Responsive Grid widget
+class ResponsiveGrid extends StatelessWidget {
+  final List<Widget> children;
+  final int? mobileColumns;
+  final int? tabletColumns;
+  final int? desktopColumns;
+  final double? mainAxisSpacing;
+  final double? crossAxisSpacing;
+  final double? childAspectRatio;
+  final bool shrinkWrap;
+  final ScrollPhysics? physics;
+
+  const ResponsiveGrid({
+    Key? key,
+    required this.children,
+    this.mobileColumns,
+    this.tabletColumns,
+    this.desktopColumns,
+    this.mainAxisSpacing,
+    this.crossAxisSpacing,
+    this.childAspectRatio,
+    this.shrinkWrap = false,
+    this.physics,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    int columns;
+    if (context.isDesktop) {
+      columns = desktopColumns ?? tabletColumns ?? mobileColumns ?? 4;
+    } else if (context.isTablet) {
+      columns = tabletColumns ?? mobileColumns ?? 3;
+    } else {
+      columns = mobileColumns ?? 2;
+    }
+
+    return GridView.count(
+      crossAxisCount: columns,
+      mainAxisSpacing: mainAxisSpacing ?? context.mediumSpacing,
+      crossAxisSpacing: crossAxisSpacing ?? context.mediumSpacing,
+      childAspectRatio: childAspectRatio ?? 1.0,
+      shrinkWrap: shrinkWrap,
+      physics: physics,
+      children: children,
+    );
+  }
+}
+
+// Responsive Text widget
+class ResponsiveText extends StatelessWidget {
+  final String text;
+  final double? mobileFontSize;
+  final double? tabletFontSize;
+  final double? desktopFontSize;
+  final FontWeight? fontWeight;
+  final Color? color;
+  final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
+  final TextStyle? style;
+
+  const ResponsiveText(
+    this.text, {
+    Key? key,
+    this.mobileFontSize,
+    this.tabletFontSize,
+    this.desktopFontSize,
+    this.fontWeight,
+    this.color,
+    this.textAlign,
+    this.maxLines,
+    this.overflow,
+    this.style,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = ResponsiveUtils.getFontSize(
+      context,
+      mobile: mobileFontSize,
+      tablet: tabletFontSize,
+      desktop: desktopFontSize,
+    );
+
+    return Text(
+      text,
+      style: (style ?? const TextStyle()).copyWith(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+      ),
+      textAlign: textAlign,
+      maxLines: maxLines,
+      overflow: overflow,
+    );
+  }
+}
