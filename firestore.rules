@@ -1,28 +1,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection - users can read and write their own data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Movies collection - read access for all authenticated users, write access for admins only
-    match /movies/{movieId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read and write their own data
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admins can read and write all user data (for user management)
+      allow read, write: if isAdmin();
+      
+      // Allow list/query operations for admins (needed for user management)
+      allow list: if isAdmin();
+    }
+    
+    // Movies collection - read access for all authenticated users, write access for admins only
+    match /movies/{movieId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+      allow list: if isAuthenticated();
+    }
+    
     // Bookings collection (for future use)
     match /bookings/{bookingId} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow read: if isAuthenticated() && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if isAuthenticated() && 
+        (request.auth.uid == resource.data.userId || isAdmin());
+      allow list: if isAdmin();
     }
     
     // Default deny

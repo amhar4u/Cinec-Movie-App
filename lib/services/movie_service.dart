@@ -92,4 +92,65 @@ class MovieService {
       return [];
     }
   }
+
+  // Get available time slots for a specific date
+  Future<List<String>> getAvailableTimeSlots(String date, {String? excludeMovieId}) async {
+    try {
+      // All possible time slots
+      final List<String> allTimeSlots = [
+        '9:00 AM',
+        '12:00 PM',
+        '3:00 PM',
+        '6:00 PM',
+        '9:00 PM',
+      ];
+
+      // Get all movies for the specific date
+      QuerySnapshot snapshot = await _firestore
+          .collection(_collection)
+          .where('releaseDate', isEqualTo: date)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      // Get all booked time slots for this date
+      Set<String> bookedTimeSlots = {};
+      for (var doc in snapshot.docs) {
+        // Skip the current movie if we're editing (excludeMovieId)
+        if (excludeMovieId != null && doc.id == excludeMovieId) {
+          continue;
+        }
+        
+        final movie = Movie.fromFirestore(doc);
+        bookedTimeSlots.addAll(movie.showtimes);
+      }
+
+      // Return only available time slots
+      return allTimeSlots.where((slot) => !bookedTimeSlots.contains(slot)).toList();
+    } catch (e) {
+      print('Error getting available time slots: $e');
+      return [
+        '9:00 AM',
+        '12:00 PM',
+        '3:00 PM',
+        '6:00 PM',
+        '9:00 PM',
+      ]; // Return all slots as fallback
+    }
+  }
+
+  // Get movies by release date
+  Future<List<Movie>> getMoviesByDate(String date) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection(_collection)
+          .where('releaseDate', isEqualTo: date)
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      return snapshot.docs.map((doc) => Movie.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('Error getting movies by date: $e');
+      return [];
+    }
+  }
 }

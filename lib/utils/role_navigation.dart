@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../screens/user/user_home_screen.dart';
+import '../screens/user/main_user_screen.dart';
 import '../screens/admin/admin_home_screen.dart';
 import '../screens/auth/welcome_screen.dart';
 
@@ -9,7 +9,7 @@ class RoleBasedNavigation {
   static Widget getHomeScreenForRole(UserRole? role) {
     switch (role) {
       case UserRole.user:
-        return const UserHomeScreen();
+        return const MainUserScreen();
       case UserRole.admin:
         return const AdminHomeScreen();
       default:

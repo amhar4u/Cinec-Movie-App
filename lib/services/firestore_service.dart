@@ -29,6 +29,7 @@ class FirestoreService {
           role: role,
           createdAt: DateTime.now(),
           lastLoginAt: DateTime.now(),
+          isActive: true,
         );
         
         await userDoc.set(userData.toFirestore());
@@ -66,6 +67,7 @@ class FirestoreService {
     String? name,
     String? profilePictureUrl,
     UserRole? role,
+    bool? isActive,
   }) async {
     try {
       final Map<String, dynamic> updateData = {};
@@ -73,6 +75,7 @@ class FirestoreService {
       if (name != null) updateData['name'] = name;
       if (profilePictureUrl != null) updateData['profilePictureUrl'] = profilePictureUrl;
       if (role != null) updateData['role'] = role.toString().split('.').last;
+      if (isActive != null) updateData['isActive'] = isActive;
       
       if (updateData.isNotEmpty) {
         await _firestore
