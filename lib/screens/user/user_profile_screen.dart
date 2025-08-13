@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/profile_avatar.dart';
 import '../auth/welcome_screen.dart';
+import '../profile/edit_profile_screen.dart';
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
@@ -59,10 +60,31 @@ class UserProfileScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-                
+                ),                
                 const SizedBox(height: 30),
                 
+                // Edit Profile Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfileScreen(userModel: user),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Profile'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+
                 // Logout Button
                 SizedBox(
                   width: double.infinity,

@@ -253,6 +253,57 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Change user password
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      _setLoading(true);
+      clearError();
+
+      if (_user == null) {
+        return {
+          'success': false,
+          'message': 'User not authenticated',
+        };
+      }
+
+      // Reauthenticate user with current password
+      final credential = EmailAuthProvider.credential(
+        email: _user!.email!,
+        password: currentPassword,
+      );
+
+      await _user!.reauthenticateWithCredential(credential);
+
+      // Update password
+      await _user!.updatePassword(newPassword);
+
+      _setLoading(false);
+      return {
+        'success': true,
+        'message': 'Password changed successfully',
+      };
+    } on FirebaseAuthException catch (e) {
+      String message = _getFirebaseErrorMessage(e);
+      if (e.code == 'wrong-password') {
+        message = 'Current password is incorrect';
+      }
+      _setError(message);
+      return {
+        'success': false,
+        'message': message,
+      };
+    } catch (e) {
+      _setError('Failed to change password. Please try again.');
+      return {
+        'success': false,
+        'message': 'Failed to change password. Please try again.',
+      };
+    }
+  }
+
   // Reset Password
   Future<bool> resetPassword(String email) async {
     try {
@@ -269,6 +320,13 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _setError('Failed to send reset email. Please try again.');
       return false;
+    }
+  }
+
+  // Refresh user data from Firestore
+  Future<void> refreshUser() async {
+    if (_user != null) {
+      await _loadUserModel(_user!.uid);
     }
   }
 

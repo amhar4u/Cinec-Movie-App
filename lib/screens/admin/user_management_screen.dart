@@ -8,6 +8,7 @@ import '../../services/admin_verification_service.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/profile_avatar.dart';
+import '../profile/edit_profile_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -594,6 +595,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       case 'view':
                         _showUserDetails(user);
                         break;
+                      case 'edit':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditProfileScreen(
+                              userModel: user,
+                              isAdminEdit: true,
+                            ),
+                          ),
+                        ).then((_) {
+                          // Refresh the user list when returning from edit
+                          _loadUsers();
+                        });
+                        break;
                       case 'toggle_status':
                         _toggleUserStatus(user);
                         break;
@@ -610,6 +625,16 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           Icon(Icons.visibility),
                           SizedBox(width: 8),
                           Text('View Details'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit),
+                          SizedBox(width: 8),
+                          Text('Edit Profile'),
                         ],
                       ),
                     ),

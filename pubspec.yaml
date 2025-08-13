@@ -53,6 +53,11 @@ dependencies:
   # Image handling
   image_picker: ^1.1.2
   
+  # HTTP requests and Image upload
+  http: ^1.2.2
+  dio: ^5.7.0
+  crypto: ^3.0.5
+  
   # UI Components
   smooth_page_indicator: ^1.2.0
   animate_do: ^3.3.4
