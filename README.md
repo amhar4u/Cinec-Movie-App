@@ -10,6 +10,15 @@ A beautiful and modern Flutter movie booking application with attractive UI, OAu
 - 📱 **Responsive Design**: Works on mobile, tablet, and desktop
 - 🎨 **Modern UI**: Beautiful, consistent design with smooth animations
 - 🔧 **Reusable Components**: Well-structured, modular widget architecture
+- 👤 **User Profile Management**: Complete edit profile functionality with image upload
+- 🔑 **Password Management**: Secure password change capabilities
+- ☁️ **Cloudinary Integration**: Profile picture storage and management
+
+## 📖 Documentation
+
+- **[Complete Implementation Guide](COMPLETE_IMPLEMENTATION_GUIDE.md)** - Comprehensive guide covering edit profile, image upload, and Cloudinary integration
+- **[Firebase Setup Guide](FIREBASE_SETUP_GUIDE.md)** - Firebase configuration and setup
+- **[Movie Management Guide](MOVIE_MANAGEMENT_COMPLETE.md)** - Movie CRUD operations and management
 
 ## Project Structure
 
