@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../auth/welcome_screen.dart';
 import 'admin_movie_list_screen.dart';
 import 'user_management_screen.dart';
+import 'admin_bookings_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -203,6 +204,13 @@ class AdminHomeScreen extends StatelessWidget {
               ),
             );
           }
+        } else if (action['title'] == 'Bookings') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AdminBookingsScreen(),
+            ),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${action['title']} coming soon!')),
@@ -491,13 +499,24 @@ class AdminHomeScreen extends StatelessWidget {
                     title: const Text('Sign Out'),
                     onTap: () async {
                       Navigator.pop(context);
-                      await authProvider.signOut();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-                          (route) => false,
-                        );
+                      try {
+                        await authProvider.signOut();
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                            (route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error signing out: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                   ),

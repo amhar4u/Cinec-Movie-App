@@ -90,15 +90,26 @@ class UserProfileScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () async {
-                      await authProvider.signOut();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const WelcomeScreen(),
-                          ),
-                          (route) => false,
-                        );
+                      try {
+                        await authProvider.signOut();
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const WelcomeScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error signing out: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     icon: const Icon(Icons.logout),

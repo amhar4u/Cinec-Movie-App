@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../screens/user/main_user_screen.dart';
-import '../screens/admin/admin_home_screen.dart';
+import '../screens/admin/main_admin_screen.dart';
 import '../screens/auth/welcome_screen.dart';
 
 class RoleBasedNavigation {
@@ -11,7 +11,7 @@ class RoleBasedNavigation {
       case UserRole.user:
         return const MainUserScreen();
       case UserRole.admin:
-        return const AdminHomeScreen();
+        return const MainAdminScreen();
       default:
         return const WelcomeScreen(); // Fallback if role is null
     }
